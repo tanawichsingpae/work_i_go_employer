@@ -40,4 +40,38 @@ const App = () => {
   );
 };
 
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+
+  if (!token) return;
+
+  localStorage.setItem("sb_token", token);
+
+  const fetchEmployer = async () => {
+    const { createClient } = await import("@supabase/supabase-js");
+
+    const supabase = createClient(
+      "https://ispbevvwwggbktfczmui.supabase.co",
+      "sb_publishable_5pnSaiKllm-q7UNMe5r7pw_n4Qu-AJ7"
+    );
+
+    const { data: { user } } = await supabase.auth.getUser(token);
+
+    if (!user) return;
+
+    const { data: employer } = await supabase
+      .from("employers")
+      .select("employer_id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (employer) {
+      localStorage.setItem("employer_id", employer.employer_id);
+      console.log("Employer ID:", employer.employer_id);
+    }
+  };
+
+  fetchEmployer();
+}, []);
 export default App;
