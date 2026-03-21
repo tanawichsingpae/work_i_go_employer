@@ -1,11 +1,10 @@
 {
   "name": "p6",
   "version": "1.0.0",
-  "description": "",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "build": "cd employer_dashboard && npm install && npm run build",
+    "build": "npm install --prefix employer-dashboard && npm run build --prefix employer-dashboard",
     "start": "node server.js"
   },
   "dependencies": {
