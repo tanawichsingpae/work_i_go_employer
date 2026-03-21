@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
-import { useEffect } from "react";
+
 
 const queryClient = new QueryClient();
 
