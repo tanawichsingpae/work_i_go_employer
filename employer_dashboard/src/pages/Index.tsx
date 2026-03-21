@@ -3,9 +3,13 @@ import EmployerSidebar from "@/components/dashboard/EmployerSidebar";
 import SummaryCards from "@/components/dashboard/SummaryCards";
 import JobpostTab from "@/components/dashboard/JobpostTab";
 import EmploymentsTab from "@/components/dashboard/EmploymentsTab";
+import LanguageSwitcher from "@/components/dashboard/LanguageSwitcher";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const Index = () => {
+  const { t } = useLanguage();
+
   return (
     <SidebarProvider>
       <div className="flex min-h-svh w-full bg-background">
@@ -17,14 +21,15 @@ const Index = () => {
               <SidebarTrigger className="h-9 w-9 shrink-0 md:h-8 md:w-8" />
               <div className="min-w-0">
                 <h1 className="truncate font-display text-base font-semibold text-foreground sm:text-lg">
-                  Dashboard
+                  {t("dashboard")}
                 </h1>
                 <p className="text-xs text-muted-foreground sm:hidden">
-                  Employer overview
+                  {t("employerOverview")}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3 self-start sm:self-auto">
+              <LanguageSwitcher />
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
                 <span className="text-xs font-medium text-primary-foreground">TC</span>
               </div>
@@ -41,29 +46,33 @@ const Index = () => {
   );
 };
 
-const DashboardView = () => (
-  <div className="mx-auto w-full max-w-7xl space-y-4 sm:space-y-6">
-    {/* Summary Cards */}
-    <SummaryCards />
+const DashboardView = () => {
+  const { t } = useLanguage();
 
-    {/* Tabs: Jobpost / Employments */}
-    <Tabs defaultValue="jobpost" className="w-full">
-      <TabsList className="grid h-auto w-full grid-cols-2 gap-1">
-        <TabsTrigger value="jobpost" className="min-h-[2.75rem] whitespace-normal px-3 py-2 text-xs leading-tight sm:text-sm">
-          Jobpost
-        </TabsTrigger>
-        <TabsTrigger value="employments" className="min-h-[2.75rem] whitespace-normal px-3 py-2 text-xs leading-tight sm:text-sm">
-          Employments
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="jobpost">
-        <JobpostTab />
-      </TabsContent>
-      <TabsContent value="employments">
-        <EmploymentsTab />
-      </TabsContent>
-    </Tabs>
-  </div>
-);
+  return (
+    <div className="mx-auto w-full max-w-7xl space-y-4 sm:space-y-6">
+      {/* Summary Cards */}
+      <SummaryCards />
+
+      {/* Tabs: Jobpost / Employments */}
+      <Tabs defaultValue="jobpost" className="w-full">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1">
+          <TabsTrigger value="jobpost" className="min-h-[2.75rem] whitespace-normal px-3 py-2 text-xs leading-tight sm:text-sm">
+            {t("jobpost")}
+          </TabsTrigger>
+          <TabsTrigger value="employments" className="min-h-[2.75rem] whitespace-normal px-3 py-2 text-xs leading-tight sm:text-sm">
+            {t("employments")}
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="jobpost">
+          <JobpostTab />
+        </TabsContent>
+        <TabsContent value="employments">
+          <EmploymentsTab />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
 
 export default Index;

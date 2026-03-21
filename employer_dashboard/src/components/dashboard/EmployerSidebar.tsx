@@ -16,19 +16,22 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKeys } from "@/i18n/en";
 
 interface EmployerSidebarProps {
   activeMenu: string;
   onMenuChange: (menu: string) => void;
 }
 
-const menuItems = [
-  { id: "dashboard", title: "Dashboard", icon: LayoutDashboard },
+const menuItems: Array<{ id: string; titleKey: TranslationKeys; icon: typeof LayoutDashboard }> = [
+  { id: "dashboard", titleKey: "dashboard", icon: LayoutDashboard },
 ];
 
 const EmployerSidebar = ({ activeMenu, onMenuChange }: EmployerSidebarProps) => {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { t } = useLanguage();
 
   return (
     <Sidebar collapsible="icon">
@@ -45,7 +48,7 @@ const EmployerSidebar = ({ activeMenu, onMenuChange }: EmployerSidebarProps) => 
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-muted">Main Menu</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-muted">{t("mainMenu")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
@@ -56,7 +59,7 @@ const EmployerSidebar = ({ activeMenu, onMenuChange }: EmployerSidebarProps) => 
                     className="text-sidebar-foreground hover:bg-sidebar-accent data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground cursor-pointer"
                   >
                     <item.icon className="h-4 w-4" />
-                    {!collapsed && <span>{item.title}</span>}
+                    {!collapsed && <span>{t(item.titleKey)}</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -71,7 +74,7 @@ const EmployerSidebar = ({ activeMenu, onMenuChange }: EmployerSidebarProps) => 
           <SidebarMenuItem>
             <SidebarMenuButton className="text-sidebar-foreground hover:bg-sidebar-accent">
               <LogOut className="h-4 w-4" />
-              {!collapsed && <span>Logout</span>}
+              {!collapsed && <span>{t("logout")}</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

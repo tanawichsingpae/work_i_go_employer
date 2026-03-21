@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { fetchJson } from "@/lib/api";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 type JobpostSummary = {
   jobpost_id: string;
@@ -65,6 +66,7 @@ const JobpostTab = () => {
   const [chartView, setChartView] = useState<ChartView>("wage");
   const [search, setSearch] = useState("");
   const isMobile = useIsMobile();
+  const { t } = useLanguage();
 
   const { data: summaryData, isLoading: summaryLoading, error: summaryError } = useQuery<JobpostSummary[]>({
     queryKey: ["jobpost-summary"],
@@ -135,10 +137,10 @@ const JobpostTab = () => {
               <div className="space-y-2">
                 <div>
                   <h3 className="font-display text-lg font-semibold text-card-foreground">
-                    Jobpost Insights
+                    {t("jobpostInsights")}
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Switch between applicants volume and agreed wage without leaving the same panel.
+                    {t("jobpostInsightsDesc")}
                   </p>
                 </div>
 
@@ -147,26 +149,26 @@ const JobpostTab = () => {
                     value="applicants"
                     className="min-h-[2.75rem] rounded-lg px-4 py-2 text-xs font-semibold leading-tight sm:text-sm"
                   >
-                    Applicants by Jobpost
+                    {t("applicantsByJobpost")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="wage"
                     className="min-h-[2.75rem] rounded-lg px-4 py-2 text-xs font-semibold leading-tight sm:text-sm"
                   >
-                    Agreed Wage by Jobpost
+                    {t("agreedWageByJobpost")}
                   </TabsTrigger>
                 </TabsList>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                 <div className="rounded-full bg-background/90 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-                  {pieData.length} jobposts
+                  {pieData.length} {t("jobposts")}
                 </div>
                 <div className="rounded-full bg-background/90 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-                  {totalApplicants} applicants
+                  {totalApplicants} {t("applicants")}
                 </div>
                 <div className="rounded-full bg-background/90 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-                  {formatCurrency(totalPieValue)} total wage
+                  {formatCurrency(totalPieValue)} {t("totalWage")}
                 </div>
                 {selectedJobpost !== "all" && (
                   <button
@@ -174,7 +176,7 @@ const JobpostTab = () => {
                     onClick={() => setSelectedJobpost("all")}
                     className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
                   >
-                    Reset filter: {selectedLabel}
+                    {t("resetFilter")}: {selectedLabel}
                   </button>
                 )}
               </div>
@@ -182,22 +184,22 @@ const JobpostTab = () => {
           </div>
 
           <TabsContent value="applicants" className="mt-0 p-4 sm:p-5">
-            {summaryLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
-            {summaryError && !summaryLoading && <p className="text-sm text-destructive">Unable to load applicants chart</p>}
+            {summaryLoading && <p className="text-sm text-muted-foreground">{t("loading")}</p>}
+            {summaryError && !summaryLoading && <p className="text-sm text-destructive">{t("loadApplicantsChartError")}</p>}
             {!summaryLoading && !summaryError && applicantsBarData.length === 0 && (
-              <p className="text-sm text-muted-foreground">No data</p>
+              <p className="text-sm text-muted-foreground">{t("noData")}</p>
             )}
             {!summaryLoading && !summaryError && applicantsBarData.length > 0 && (
               <div className="space-y-4">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h4 className="font-display font-semibold text-card-foreground">Applicants by Jobpost</h4>
+                    <h4 className="font-display font-semibold text-card-foreground">{t("applicantsByJobpost")}</h4>
                     <p className="text-sm text-muted-foreground">
-                      Click a bar to filter the applicants table below.
+                      {t("clickBarToFilter")}
                     </p>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {selectedJobpost === "all" ? "Showing all jobposts" : `Selected: ${selectedLabel}`}
+                    {selectedJobpost === "all" ? t("showingAllJobposts") : `${t("selected")}: ${selectedLabel}`}
                   </div>
                 </div>
 
@@ -216,8 +218,8 @@ const JobpostTab = () => {
                         <YAxis tick={{ fill: "hsl(220 9% 46%)", fontSize: 11 }} allowDecimals={false} />
                         <Tooltip
                           formatter={(value: number, _name: string, props: { payload?: { label?: string } }) => [
-                            `${value} applicants`,
-                            props.payload?.label ?? "Jobpost",
+                            `${value} ${t("applicants")}`,
+                            props.payload?.label ?? t("jobpost"),
                           ]}
                         />
                         <Bar dataKey="applicants" radius={[6, 6, 0, 0]} onClick={handleApplicantsBarClick} style={{ cursor: "pointer" }}>
@@ -240,22 +242,22 @@ const JobpostTab = () => {
           </TabsContent>
 
           <TabsContent value="wage" className="mt-0 p-4 sm:p-5">
-            {summaryLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
-            {summaryError && !summaryLoading && <p className="text-sm text-destructive">Unable to load chart data</p>}
+            {summaryLoading && <p className="text-sm text-muted-foreground">{t("loading")}</p>}
+            {summaryError && !summaryLoading && <p className="text-sm text-destructive">{t("loadChartDataError")}</p>}
             {!summaryLoading && !summaryError && pieData.length === 0 && (
-              <p className="text-sm text-muted-foreground">No data</p>
+              <p className="text-sm text-muted-foreground">{t("noData")}</p>
             )}
             {!summaryLoading && !summaryError && pieData.length > 0 && (
               <div className="space-y-4">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h4 className="font-display font-semibold text-card-foreground">Agreed Wage by Jobpost</h4>
+                    <h4 className="font-display font-semibold text-card-foreground">{t("agreedWageByJobpost")}</h4>
                     <p className="text-sm text-muted-foreground">
-                      Click a slice or list item to focus the applicants table on one jobpost.
+                      {t("clickSliceToFocus")}
                     </p>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {selectedJobpost === "all" ? "Showing all jobposts" : `Selected: ${selectedLabel}`}
+                    {selectedJobpost === "all" ? t("showingAllJobposts") : `${t("selected")}: ${selectedLabel}`}
                   </div>
                 </div>
 
@@ -295,8 +297,8 @@ const JobpostTab = () => {
                         </Pie>
                         <Tooltip
                           formatter={(value: number | string, _name: string, props: { payload?: { applicant_count?: number } }) => [
-                            `${formatCurrency(Number(value))} (${props.payload?.applicant_count ?? 0} applicants)`,
-                            "Agreed wage",
+                            `${formatCurrency(Number(value))} (${props.payload?.applicant_count ?? 0} ${t("applicants")})`,
+                            t("agreedWage"),
                           ]}
                         />
                       </PieChart>
@@ -334,7 +336,7 @@ const JobpostTab = () => {
                                 </span>
                               </div>
                               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                <span>{item.applicant_count} applicants</span>
+                                <span>{item.applicant_count} {t("applicants")}</span>
                                 <span>{formatCurrency(item.value)}</span>
                               </div>
                             </div>
@@ -357,7 +359,7 @@ const JobpostTab = () => {
             onChange={(e) => setSelectedJobpost(e.target.value)}
             className="h-10 w-full rounded-lg bg-secondary px-3 text-sm text-foreground outline-none ring-0 transition-shadow focus:ring-2 focus:ring-ring sm:w-72"
           >
-            <option value="all">All Jobposts</option>
+            <option value="all">{t("allJobposts")}</option>
             {(summaryData || []).map((summary) => (
               <option key={summary.jobpost_id} value={summary.jobpost_id}>
                 {summary.job_title} ({formatCurrency(summary.total_agreed_wage)})
@@ -368,7 +370,7 @@ const JobpostTab = () => {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search applicant or job..."
+              placeholder={t("searchApplicantOrJob")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-10 w-full rounded-lg bg-secondary pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-shadow focus:ring-2 focus:ring-ring"
@@ -377,25 +379,25 @@ const JobpostTab = () => {
         </div>
 
         <h3 className="mb-3 font-display font-semibold text-card-foreground">
-          Applicants {selectedJobpost !== "all" ? `- ${selectedLabel}` : "- All"}
+          {t("applicantsAll")} {selectedJobpost !== "all" ? `- ${selectedLabel}` : `- ${t("all")}`}
         </h3>
 
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full table-fixed text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="w-[28%] py-2 pr-4 text-left font-medium text-muted-foreground">Applicant Name</th>
-                <th className="w-[24%] py-2 pr-4 text-left font-medium text-muted-foreground">Applied For</th>
-                <th className="w-[22%] py-2 pr-4 text-left font-medium text-muted-foreground">Province</th>
-                <th className="w-[26%] py-2 text-left font-medium text-muted-foreground">Applied</th>
+                <th className="w-[28%] py-2 pr-4 text-left font-medium text-muted-foreground">{t("applicantName")}</th>
+                <th className="w-[24%] py-2 pr-4 text-left font-medium text-muted-foreground">{t("appliedFor")}</th>
+                <th className="w-[22%] py-2 pr-4 text-left font-medium text-muted-foreground">{t("province")}</th>
+                <th className="w-[26%] py-2 text-left font-medium text-muted-foreground">{t("applied")}</th>
               </tr>
             </thead>
             <tbody>
               {appLoading && (
-                <tr><td colSpan={4} className="py-6 text-center text-muted-foreground">Loading...</td></tr>
+                <tr><td colSpan={4} className="py-6 text-center text-muted-foreground">{t("loading")}</td></tr>
               )}
               {appError && !appLoading && (
-                <tr><td colSpan={4} className="py-6 text-center text-destructive">Unable to load applicants</td></tr>
+                <tr><td colSpan={4} className="py-6 text-center text-destructive">{t("loadApplicantsError")}</td></tr>
               )}
               {!appLoading && !appError && filtered.map((applicant) => (
                 <tr key={applicant.job_application_id} className="border-b border-border last:border-0 transition-colors hover:bg-accent/50">
@@ -406,15 +408,15 @@ const JobpostTab = () => {
                 </tr>
               ))}
               {!appLoading && !appError && filtered.length === 0 && (
-                <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No applicants found</td></tr>
+                <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">{t("noApplicantsFound")}</td></tr>
               )}
             </tbody>
           </table>
         </div>
 
         <div className="space-y-3 md:hidden">
-          {appLoading && <p className="text-center text-muted-foreground">Loading...</p>}
-          {appError && !appLoading && <p className="text-center text-destructive">Unable to load applicants</p>}
+          {appLoading && <p className="text-center text-muted-foreground">{t("loading")}</p>}
+          {appError && !appLoading && <p className="text-center text-destructive">{t("loadApplicantsError")}</p>}
           {!appLoading && !appError && filtered.map((applicant) => (
             <div key={applicant.job_application_id} className="space-y-3 rounded-lg border border-border p-4">
               <div className="min-w-0">
@@ -422,13 +424,13 @@ const JobpostTab = () => {
                 <p className="break-words text-sm text-muted-foreground">{applicant.job_title}</p>
               </div>
               <div className="grid gap-1 text-xs text-muted-foreground">
-                <p>Province: {applicant.province || "-"}</p>
-                <p>Applied: {formatAppliedDate(applicant.applied_at)}</p>
+                <p>{t("province")}: {applicant.province || "-"}</p>
+                <p>{t("applied")}: {formatAppliedDate(applicant.applied_at)}</p>
               </div>
             </div>
           ))}
           {!appLoading && !appError && filtered.length === 0 && (
-            <p className="py-8 text-center text-muted-foreground">No applicants found</p>
+            <p className="py-8 text-center text-muted-foreground">{t("noApplicantsFound")}</p>
           )}
         </div>
       </div>
