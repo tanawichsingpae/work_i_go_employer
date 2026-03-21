@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import EmployerSidebar from "@/components/dashboard/EmployerSidebar";
 import SummaryCards from "@/components/dashboard/SummaryCards";
@@ -48,28 +49,35 @@ const Index = () => {
 
 const DashboardView = () => {
   const { t } = useLanguage();
+  const [tab, setTab] = useState("jobpost");
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-4 sm:space-y-6">
-      {/* Summary Cards */}
+
       <SummaryCards />
 
-      {/* Tabs: Jobpost / Employments */}
-      <Tabs defaultValue="jobpost" className="w-full">
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
+
         <TabsList className="grid h-auto w-full grid-cols-2 gap-1">
-          <TabsTrigger value="jobpost" className="min-h-[2.75rem] whitespace-normal px-3 py-2 text-xs leading-tight sm:text-sm">
+
+          <TabsTrigger value="jobpost">
             {t("jobpost")}
           </TabsTrigger>
-          <TabsTrigger value="employments" className="min-h-[2.75rem] whitespace-normal px-3 py-2 text-xs leading-tight sm:text-sm">
+
+          <TabsTrigger value="employments">
             {t("employments")}
           </TabsTrigger>
+
         </TabsList>
+
         <TabsContent value="jobpost">
           <JobpostTab />
         </TabsContent>
+
         <TabsContent value="employments">
           <EmploymentsTab />
         </TabsContent>
+
       </Tabs>
     </div>
   );
