@@ -3,14 +3,29 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
+app.use((req, res, next) => {
+  const startedAt = Date.now();
+  console.log(`➡️ ${req.method} ${req.originalUrl}`);
+  res.on("finish", () => {
+    console.log(`⬅️ ${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - startedAt}ms`);
+  });
+  next();
+});
+
+const DEFAULT_QUERY_TIMEOUT_MS = Number(process.env.PG_QUERY_TIMEOUT_MS || 15000);
+const schemaCheckCache = new Map();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
+  connectionTimeoutMillis: Number(process.env.PG_CONNECTION_TIMEOUT_MS || 5000),
+  query_timeout: DEFAULT_QUERY_TIMEOUT_MS,
+  statement_timeout: DEFAULT_QUERY_TIMEOUT_MS,
 });
 
 
@@ -99,6 +114,10 @@ app.get('/geographies', async (req, res) => {
   `;
   const { rows } = await pool.query(sql);
   res.json(rows);
+});
+
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, timestamp: new Date().toISOString() });
 });
 
 app.get('/provinces', async (req, res) => {
@@ -223,6 +242,8 @@ app.get("/dashboard/geo/provinces", async (req, res) => {
 });
 
 async function hasTable(pool, tableName) {
+  const cacheKey = `table:${tableName}`;
+  if (schemaCheckCache.has(cacheKey)) return schemaCheckCache.get(cacheKey);
   const sql = `
     SELECT 1
     FROM information_schema.tables
@@ -230,10 +251,14 @@ async function hasTable(pool, tableName) {
     LIMIT 1
   `;
   const { rows } = await pool.query(sql, [tableName]);
-  return rows.length > 0;
+  const result = rows.length > 0;
+  schemaCheckCache.set(cacheKey, result);
+  return result;
 }
 
 async function hasColumn(pool, tableName, columnName) {
+  const cacheKey = `column:${tableName}:${columnName}`;
+  if (schemaCheckCache.has(cacheKey)) return schemaCheckCache.get(cacheKey);
   const sql = `
     SELECT 1
     FROM information_schema.columns
@@ -241,7 +266,25 @@ async function hasColumn(pool, tableName, columnName) {
     LIMIT 1
   `;
   const { rows } = await pool.query(sql, [tableName, columnName]);
-  return rows.length > 0;
+  const result = rows.length > 0;
+  schemaCheckCache.set(cacheKey, result);
+  return result;
+}
+
+async function timedQuery(label, sql, params = []) {
+  const startedAt = Date.now();
+  try {
+    const result = await pool.query(sql, params);
+    const durationMs = Date.now() - startedAt;
+    if (durationMs >= 1000) {
+      console.warn(`🐢 Slow query [${label}] ${durationMs}ms`);
+    }
+    return result;
+  } catch (err) {
+    const durationMs = Date.now() - startedAt;
+    console.error(`🚫 Query failed [${label}] after ${durationMs}ms`, err);
+    throw err;
+  }
 }
 
 async function getJobTitleExpression(pool, jobpostAlias = "jp", jobTypeAlias = "jt") {
@@ -1125,7 +1168,7 @@ app.get("/api/employer/kpis", async (req, res) => {
       }
     `;
 
-    const { rows } = await pool.query(sql, params);
+    const { rows } = await timedQuery("/api/employer/kpis", sql, params);
     res.json(rows[0]);
   } catch (err) {
     console.error("🚫 /api/employer/kpis error:", err);
@@ -1260,17 +1303,19 @@ app.get("/api/employer/jobpost-summary", async (req, res) => {
         jp.jobpost_id,
         ${jobTitleExpr} AS job_title,
         jt.job_type,
+        COALESCE(jp.wage_amount, 0)::float AS wage_amount,
         COUNT(DISTINCT ja.job_application_id)::int AS applicant_count,
+        COUNT(DISTINCT e.job_application_id)::int AS hired_application_count,
         COALESCE(SUM(e.agreed_wage), 0)::float AS total_agreed_wage
       FROM jobposts jp
       JOIN job_types jt ON jp.job_type_id = jt.job_type_id
       LEFT JOIN job_applications ja ON ja.jobpost_id = jp.jobpost_id
       LEFT JOIN employments e ON e.job_application_id = ja.job_application_id
       WHERE jp.employer_id = $1
-      GROUP BY jp.jobpost_id, ${jobTitleExpr}, jt.job_type
+      GROUP BY jp.jobpost_id, ${jobTitleExpr}, jt.job_type, jp.wage_amount
       ORDER BY total_agreed_wage DESC
     `;
-    const { rows } = await pool.query(sql, [employer_id]);
+    const { rows } = await timedQuery("/api/employer/jobpost-summary", sql, [employer_id]);
     res.json(rows);
   } catch (err) {
     console.error("🚫 /api/employer/jobpost-summary error:", err);
@@ -1303,7 +1348,7 @@ app.get("/api/employer/employment-timeline", async (req, res) => {
       GROUP BY jp.jobpost_id, ${safeTitleExpr}, jt.job_type, e.employment_status
       ORDER BY total_agreed_wage DESC
     `;
-    const { rows } = await pool.query(sql, [employer_id]);
+    const { rows } = await timedQuery("/api/employer/employment-timeline", sql, [employer_id]);
 
     // Also compute overall summary
     const summarySql = `
@@ -1317,7 +1362,7 @@ app.get("/api/employer/employment-timeline", async (req, res) => {
       JOIN jobposts jp ON ja.jobpost_id = jp.jobpost_id
       WHERE jp.employer_id = $1
     `;
-    const { rows: summaryRows } = await pool.query(summarySql, [employer_id]);
+    const { rows: summaryRows } = await timedQuery("/api/employer/employment-timeline summary", summarySql, [employer_id]);
 
     res.json({ timeline: rows, summary: summaryRows[0] });
   } catch (err) {
@@ -1332,6 +1377,7 @@ app.get("/api/employer/recent-applications", async (req, res) => {
     const { employer_id, jobpost_id } = req.query;
     const params = [];
     let filters = "WHERE 1=1";
+    const hasEmployments = await hasTable(pool, "employments");
     const seekerIdExpr = await getApplicationSeekerIdExpression(pool);
     const profileJoinCondition = await getProfileJoinCondition(pool);
     const jobTitleExpr = await getJobTitleExpression(pool);
@@ -1354,7 +1400,9 @@ app.get("/api/employer/recent-applications", async (req, res) => {
         jp.jobpost_id,
         ${jobTitleExpr} AS job_title,
         ja.applied_at::date AS applied_at,
-        ${provinceExpr} AS province
+        ${provinceExpr} AS province,
+        ${hasEmployments ? "COALESCE(emp.is_hired, false)" : "false"} AS is_hired,
+        ${hasEmployments ? "emp.agreed_wage" : "NULL"} AS agreed_wage
       FROM job_applications ja
       LEFT JOIN job_seekers js ON ${seekerIdExpr} = js.job_seeker_id
       ${profileJoinCondition ? `LEFT JOIN profiles pr ON ${profileJoinCondition}` : "LEFT JOIN profiles pr ON false"}
@@ -1366,11 +1414,21 @@ app.get("/api/employer/recent-applications", async (req, res) => {
       LEFT JOIN sub_districts sd ON sd.id = jp.sub_district_id
       LEFT JOIN districts d_sd ON d_sd.id = sd.district_id
       LEFT JOIN provinces p_sd ON p_sd.id = d_sd.province_id
+      ${hasEmployments ? `
+      LEFT JOIN (
+        SELECT
+          e.job_application_id,
+          true AS is_hired,
+          COALESCE(SUM(e.agreed_wage), 0)::float AS agreed_wage
+        FROM employments e
+        GROUP BY e.job_application_id
+      ) emp ON emp.job_application_id = ja.job_application_id
+      ` : ""}
       ${filters}
       ORDER BY ja.applied_at DESC
       LIMIT 50
     `;
-    const { rows } = await pool.query(sql, params);
+    const { rows } = await timedQuery("/api/employer/recent-applications", sql, params);
     res.json(rows);
   } catch (err) {
     console.error("🚫 /api/employer/recent-applications error:", err);
@@ -1437,7 +1495,12 @@ app.get("/api/neon/export-data", async (req, res) => {
 });
 
 // Serve Employer dashboard build (after API routes)
-const employerDist = path.join(__dirname, 'employer-dashboard', 'dist');
+const employerDistCandidates = [
+  path.join(__dirname, 'employer_dashboard', 'dist'),
+  path.join(__dirname, 'employer-dashboard', 'dist'),
+];
+const employerDist = employerDistCandidates.find((candidate) => fs.existsSync(candidate))
+  ?? employerDistCandidates[0];
 app.use('/employer', express.static(employerDist));
 app.get('/employer', (req, res) => {
   res.sendFile(path.join(employerDist, 'index.html'));
