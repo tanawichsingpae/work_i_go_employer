@@ -6,8 +6,18 @@ const ALLOW_ENV_EMPLOYER_FALLBACK = import.meta.env.DEV;
 let hasWarnedMissingEmployerId = false;
 
 async function resolveEmployerId() {
+
+  const localEmployerId = localStorage.getItem("employer_id");
+  if (localEmployerId) return localEmployerId;
+
   const supabaseEmployerId = await resolveEmployerIdFromSupabase();
-  return supabaseEmployerId || (ALLOW_ENV_EMPLOYER_FALLBACK ? FALLBACK_EMPLOYER_ID : "");
+  if (supabaseEmployerId) return supabaseEmployerId;
+
+  if (ALLOW_ENV_EMPLOYER_FALLBACK) {
+    return FALLBACK_EMPLOYER_ID;
+  }
+
+  return "";
 }
 
 async function withEmployer(path: string) {
