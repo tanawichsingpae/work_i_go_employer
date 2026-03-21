@@ -1,0 +1,6 @@
+index.html
+tmp_top.txt
+node_modules
+.env
+.env.*
+!.env.example

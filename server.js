@@ -28,6 +28,16 @@ const pool = new Pool({
   statement_timeout: DEFAULT_QUERY_TIMEOUT_MS,
 });
 
+app.use("/api/employer", (req, res, next) => {
+  const employerId = typeof req.query?.employer_id === "string" ? req.query.employer_id.trim() : "";
+
+  if (!employerId) {
+    return res.status(401).json({ error: "employer_id missing from session" });
+  }
+
+  next();
+});
+
 
 app.get('/jobs', async (req, res) => {
   const {
