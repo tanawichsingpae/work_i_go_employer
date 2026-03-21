@@ -72,6 +72,7 @@ const EmploymentsTab = () => {
   const { data, isLoading, error } = useQuery<TimelineResponse>({
     queryKey: ["employment-timeline"],
     queryFn: () => fetchJson<TimelineResponse>("/api/employer/employment-timeline"),
+    refetchOnMount: "always",
   });
 
   const aggregated = useMemo(() => {
