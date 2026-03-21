@@ -17,15 +17,14 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useLanguage } from "@/i18n/LanguageContext";
-import type { TranslationKeys } from "@/i18n/en";
 
 interface EmployerSidebarProps {
   activeMenu: string;
   onMenuChange: (menu: string) => void;
 }
 
-const menuItems: Array<{ id: string; titleKey: TranslationKeys; icon: typeof LayoutDashboard }> = [
-  { id: "dashboard", titleKey: "dashboard", icon: LayoutDashboard },
+const menuItems = [
+  { id: "dashboard", title: "Dashboard", icon: LayoutDashboard },
 ];
 
 const EmployerSidebar = ({ activeMenu, onMenuChange }: EmployerSidebarProps) => {
@@ -59,7 +58,7 @@ const EmployerSidebar = ({ activeMenu, onMenuChange }: EmployerSidebarProps) => 
                     className="text-sidebar-foreground hover:bg-sidebar-accent data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground cursor-pointer"
                   >
                     <item.icon className="h-4 w-4" />
-                    {!collapsed && <span>{t(item.titleKey)}</span>}
+                    {!collapsed && <span>{item.id === "dashboard" ? t("dashboard") : item.title}</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

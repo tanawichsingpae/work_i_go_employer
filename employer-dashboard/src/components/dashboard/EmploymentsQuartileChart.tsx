@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { format, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLanguage } from "@/i18n/LanguageContext";
+import type { Language } from "@/i18n/LanguageContext";
 
 export type EmploymentsQuartileDatum = {
   jobpostId: string;
@@ -21,10 +22,6 @@ type EmploymentsQuartileChartProps = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const axisNumberFormatter = new Intl.NumberFormat("en", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
   currency: "THB",
@@ -36,7 +33,12 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 
 const formatCurrency = (value: number) => currencyFormatter.format(value);
 
-const formatDateLabel = (value: Date, isMobile: boolean) => format(value, isMobile ? "d MMM yy" : "d MMM yyyy");
+const formatDateLabel = (value: Date, isMobile: boolean, language: Language) =>
+  new Intl.DateTimeFormat(language === "th" ? "th-TH" : "en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: isMobile ? "2-digit" : "numeric",
+  }).format(value);
 
 const isValidDate = (value: Date) => !Number.isNaN(value.getTime());
 
@@ -129,7 +131,15 @@ const EmploymentsQuartileChart = ({
 }: EmploymentsQuartileChartProps) => {
   const isMobile = useIsMobile();
   const [hoveredJobpostId, setHoveredJobpostId] = useState<string | null>(null);
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const axisNumberFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(language === "th" ? "th-TH" : "en", {
+        notation: "compact",
+        maximumFractionDigits: 1,
+      }),
+    [language],
+  );
 
   const chartState = useMemo(() => {
     const normalized = data
@@ -246,7 +256,7 @@ const EmploymentsQuartileChart = ({
         <div className="rounded-lg bg-secondary/60 p-3">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{t("range")}</p>
           <p className="mt-2 text-sm font-semibold text-card-foreground">
-            {formatDateLabel(activeItem.startDate, isMobile)} - {formatDateLabel(activeItem.endDate, isMobile)}
+            {formatDateLabel(activeItem.startDate, isMobile, language)} - {formatDateLabel(activeItem.endDate, isMobile, language)}
           </p>
         </div>
         <div className="rounded-lg bg-secondary/60 p-3">
@@ -412,7 +422,7 @@ const EmploymentsQuartileChart = ({
                       fontSize={isMobile ? 10 : 11}
                       fill="hsl(var(--muted-foreground))"
                     >
-                      {formatDateLabel(new Date(tick), isMobile)}
+                      {formatDateLabel(new Date(tick), isMobile, language)}
                     </text>
                   </g>
                 );
@@ -427,7 +437,7 @@ const EmploymentsQuartileChart = ({
                   fontWeight="600"
                   fill={activeItem.color}
                 >
-                  {`${formatDateLabel(activeItem.startDate, isMobile)} - ${formatDateLabel(activeItem.endDate, isMobile)}`}
+                  {`${formatDateLabel(activeItem.startDate, isMobile, language)} - ${formatDateLabel(activeItem.endDate, isMobile, language)}`}
                 </text>
               ) : (
                 <>
@@ -439,7 +449,7 @@ const EmploymentsQuartileChart = ({
                     fontWeight="600"
                     fill={activeItem.color}
                   >
-                    {formatDateLabel(activeItem.startDate, isMobile)}
+                    {formatDateLabel(activeItem.startDate, isMobile, language)}
                   </text>
                   <text
                     x={endLabelX}
@@ -449,7 +459,7 @@ const EmploymentsQuartileChart = ({
                     fontWeight="600"
                     fill={activeItem.color}
                   >
-                    {formatDateLabel(activeItem.endDate, isMobile)}
+                    {formatDateLabel(activeItem.endDate, isMobile, language)}
                   </text>
                 </>
               )}
@@ -482,7 +492,7 @@ const EmploymentsQuartileChart = ({
                   <div className="min-w-0 flex-1">
                     <p className="break-words text-sm font-medium text-card-foreground">{item.label}</p>
                     <div className="mt-1 grid gap-1 text-xs text-muted-foreground">
-                      <p>{formatDateLabel(item.startDate, isMobile)} - {formatDateLabel(item.endDate, isMobile)}</p>
+                      <p>{formatDateLabel(item.startDate, isMobile, language)} - {formatDateLabel(item.endDate, isMobile, language)}</p>
                       <p>{formatCurrency(item.wage)} / {item.employmentCount} {t("hires")}</p>
                     </div>
                   </div>

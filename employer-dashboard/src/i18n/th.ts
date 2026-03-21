@@ -35,6 +35,7 @@ export const th: Record<TranslationKeys, string> = {
   jobpostInsightsDesc: "สลับดูระหว่างจำนวนผู้สมัครและค่าจ้างที่ตกลงได้ในแผงเดียว",
   applicantsByJobpost: "ผู้สมัครตามประกาศงาน",
   agreedWageByJobpost: "ค่าจ้างที่ตกลงตามประกาศงาน",
+  hiredApplications: "ใบสมัครที่ถูกจ้าง",
   jobposts: "ประกาศงาน",
   applicants: "ผู้สมัคร",
   totalWage: "ค่าจ้างรวม",
@@ -42,6 +43,9 @@ export const th: Record<TranslationKeys, string> = {
   showingAllJobposts: "แสดงทุกประกาศงาน",
   selected: "เลือก",
   clickBarToFilter: "คลิกแท่งกราฟเพื่อกรองตารางผู้สมัครด้านล่าง",
+  tapToShowJobpostWage: "แตะเพื่อโชว์ราคาค่าจากในใบประกาศสมัครรับงาน",
+  wageAmountFromJobpost: "ค่าจ้างจากใบประกาศสมัครรับงาน",
+  wageSlicesFromHires: "สัดส่วนค่าจ้างนี้คำนวณจาก agreed wage ใน employments ที่เชื่อมกับใบสมัครที่ถูกจ้าง",
   clickSliceToFocus: "คลิกส่วนของกราฟหรือรายการเพื่อกรองตารางผู้สมัคร",
   loadApplicantsChartError: "ไม่สามารถโหลดกราฟผู้สมัครได้",
   loadChartDataError: "ไม่สามารถโหลดข้อมูลกราฟได้",
@@ -55,6 +59,8 @@ export const th: Record<TranslationKeys, string> = {
   applied: "วันที่สมัคร",
   loadApplicantsError: "ไม่สามารถโหลดข้อมูลผู้สมัครได้",
   noApplicantsFound: "ไม่พบผู้สมัคร",
+  hiredStatus: "ถูกจ้าง",
+  notHiredStatus: "ยังไม่ถูกจ้าง",
 
   // EmploymentsTab
   dateRange: "ช่วงเวลา",

@@ -5,13 +5,18 @@ import { Search } from "lucide-react";
 import { fetchJson } from "@/lib/api";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/i18n/LanguageContext";
+import type { Language } from "@/i18n/LanguageContext";
+import type { TranslationKeys } from "@/i18n/en";
 
 type JobpostSummary = {
   jobpost_id: string;
   job_title: string;
   job_type: string;
+  wage_amount: number;
   applicant_count: number;
+  hired_application_count: number;
   total_agreed_wage: number;
 };
 
@@ -23,6 +28,8 @@ type ApplicantRow = {
   job_title: string;
   applied_at: string;
   province: string;
+  is_hired: boolean | string | number | null | undefined;
+  agreed_wage: number | string | null | undefined;
 };
 
 const COLORS = [
@@ -48,15 +55,55 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
 });
 
 const formatCurrency = (value: number) => currencyFormatter.format(value);
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-});
-
-const formatAppliedDate = (value: string) => {
+const formatAppliedDate = (value: string, language: Language) => {
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? value : dateFormatter.format(parsed);
+  if (Number.isNaN(parsed.getTime())) return value;
+
+  return new Intl.DateTimeFormat(language === "th" ? "th-TH" : "en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(parsed);
+};
+
+const normalizeApplicant = (applicant: ApplicantRow) => {
+  const agreedWage =
+    applicant.agreed_wage === null || applicant.agreed_wage === undefined
+      ? null
+      : Number(applicant.agreed_wage);
+  const hasAgreedWage = agreedWage !== null && !Number.isNaN(agreedWage);
+  const rawIsHired = applicant.is_hired;
+  const isHired = rawIsHired === true
+    || rawIsHired === 1
+    || rawIsHired === "true"
+    || rawIsHired === "t"
+    || (typeof rawIsHired === "string" && rawIsHired.toLowerCase() === "true")
+    || hasAgreedWage;
+
+  return {
+    ...applicant,
+    is_hired: isHired,
+    agreed_wage: hasAgreedWage ? agreedWage : null,
+  };
+};
+
+const getApplicationStatusBadge = (
+  applicant: ApplicantRow,
+  t: (key: TranslationKeys) => string,
+) => {
+  if (applicant.is_hired) {
+    return (
+      <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">
+        {t("hiredStatus")} {formatCurrency(applicant.agreed_wage ?? 0)}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+      {t("notHiredStatus")}
+    </Badge>
+  );
 };
 
 type ChartView = "applicants" | "wage";
@@ -65,8 +112,9 @@ const JobpostTab = () => {
   const [selectedJobpost, setSelectedJobpost] = useState<string>("all");
   const [chartView, setChartView] = useState<ChartView>("wage");
   const [search, setSearch] = useState("");
+  const [hoveredApplicantsJobpost, setHoveredApplicantsJobpost] = useState<string | null>(null);
   const isMobile = useIsMobile();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
 
   const { data: summaryData, isLoading: summaryLoading, error: summaryError } = useQuery<JobpostSummary[]>({
     queryKey: ["jobpost-summary"],
@@ -87,28 +135,34 @@ const JobpostTab = () => {
     value: summary.total_agreed_wage,
     jobpost_id: summary.jobpost_id,
     applicant_count: summary.applicant_count,
+    hired_application_count: summary.hired_application_count,
   }));
   const totalPieValue = pieData.reduce((sum, item) => sum + item.value, 0);
   const totalApplicants = pieData.reduce((sum, item) => sum + item.applicant_count, 0);
+  const totalHiredApplications = pieData.reduce((sum, item) => sum + item.hired_application_count, 0);
 
   const applicantsBarData = (summaryData || []).map((summary, index) => ({
     key: summary.jobpost_id,
     label: summary.job_title,
     applicants: summary.applicant_count,
+    wageAmount: summary.wage_amount,
     fill: COLORS[index % COLORS.length],
   }));
 
   const selectedSummary = (summaryData || []).find((summary) => summary.jobpost_id === selectedJobpost);
   const selectedLabel = selectedSummary?.job_title ?? selectedJobpost;
+  const activeApplicantsJobpostId = hoveredApplicantsJobpost ?? (selectedJobpost !== "all" ? selectedJobpost : null);
+  const activeApplicantsBar = applicantsBarData.find((item) => item.key === activeApplicantsJobpostId) ?? null;
 
   const filtered = (applicantsData || []).filter((applicant) => {
+    const normalizedApplicant = normalizeApplicant(applicant);
     const term = search.toLowerCase();
     return (
-      (applicant.job_title || "").toLowerCase().includes(term) ||
-      (applicant.applicant_name || "").toLowerCase().includes(term) ||
-      String(applicant.job_seeker_id).includes(term)
+      (normalizedApplicant.job_title || "").toLowerCase().includes(term) ||
+      (normalizedApplicant.applicant_name || "").toLowerCase().includes(term) ||
+      String(normalizedApplicant.job_seeker_id).includes(term)
     );
-  });
+  }).map(normalizeApplicant);
 
   const handlePieClick = (_: unknown, index: number) => {
     if (pieData[index]) {
@@ -168,6 +222,9 @@ const JobpostTab = () => {
                   {totalApplicants} {t("applicants")}
                 </div>
                 <div className="rounded-full bg-background/90 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
+                  {totalHiredApplications} {t("hiredApplications")}
+                </div>
+                <div className="rounded-full bg-background/90 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
                   {formatCurrency(totalPieValue)} {t("totalWage")}
                 </div>
                 {selectedJobpost !== "all" && (
@@ -195,12 +252,18 @@ const JobpostTab = () => {
                   <div>
                     <h4 className="font-display font-semibold text-card-foreground">{t("applicantsByJobpost")}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {t("clickBarToFilter")}
+                      {t("tapToShowJobpostWage")}
                     </p>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {selectedJobpost === "all" ? t("showingAllJobposts") : `${t("selected")}: ${selectedLabel}`}
                   </div>
+                </div>
+
+                <div className="rounded-lg border border-border/70 bg-secondary/35 px-3 py-2 text-sm text-muted-foreground">
+                  {activeApplicantsBar
+                    ? `${activeApplicantsBar.label}: ${t("wageAmountFromJobpost")} ${formatCurrency(activeApplicantsBar.wageAmount)}`
+                    : t("tapToShowJobpostWage")}
                 </div>
 
                 <div className="rounded-xl border border-border/70 bg-background/70 p-3 sm:p-4">
@@ -217,12 +280,23 @@ const JobpostTab = () => {
                         />
                         <YAxis tick={{ fill: "hsl(220 9% 46%)", fontSize: 11 }} allowDecimals={false} />
                         <Tooltip
-                          formatter={(value: number, _name: string, props: { payload?: { label?: string } }) => [
-                            `${value} ${t("applicants")}`,
+                          formatter={(
+                            value: number,
+                            _name: string,
+                            props: { payload?: { label?: string; wageAmount?: number } },
+                          ) => [
+                            `${value} ${t("applicants")} | ${t("wageAmountFromJobpost")} ${formatCurrency(props.payload?.wageAmount ?? 0)}`,
                             props.payload?.label ?? t("jobpost"),
                           ]}
                         />
-                        <Bar dataKey="applicants" radius={[6, 6, 0, 0]} onClick={handleApplicantsBarClick} style={{ cursor: "pointer" }}>
+                        <Bar
+                          dataKey="applicants"
+                          radius={[6, 6, 0, 0]}
+                          onClick={handleApplicantsBarClick}
+                          onMouseEnter={(_, index) => setHoveredApplicantsJobpost(applicantsBarData[index]?.key ?? null)}
+                          onMouseLeave={() => setHoveredApplicantsJobpost(null)}
+                          style={{ cursor: "pointer" }}
+                        >
                           {applicantsBarData.map((item) => (
                             <Cell
                               key={item.key}
@@ -253,7 +327,7 @@ const JobpostTab = () => {
                   <div>
                     <h4 className="font-display font-semibold text-card-foreground">{t("agreedWageByJobpost")}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {t("clickSliceToFocus")}
+                      {t("wageSlicesFromHires")}
                     </p>
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -296,9 +370,15 @@ const JobpostTab = () => {
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(value: number | string, _name: string, props: { payload?: { applicant_count?: number } }) => [
-                            `${formatCurrency(Number(value))} (${props.payload?.applicant_count ?? 0} ${t("applicants")})`,
-                            t("agreedWage"),
+                          formatter={(
+                            value: number | string,
+                            _name: string,
+                            props: { payload?: { applicant_count?: number; hired_application_count?: number } },
+                          ) => [
+                            language === "th"
+                              ? `${formatCurrency(Number(value))} จาก ${props.payload?.hired_application_count ?? 0} ${t("hiredApplications")}`
+                              : `${formatCurrency(Number(value))} from ${props.payload?.hired_application_count ?? 0} ${t("hiredApplications")}`,
+                            `${t("applicants")}: ${props.payload?.applicant_count ?? 0}`,
                           ]}
                         />
                       </PieChart>
@@ -337,6 +417,7 @@ const JobpostTab = () => {
                               </div>
                               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                 <span>{item.applicant_count} {t("applicants")}</span>
+                                <span>{item.hired_application_count} {t("hiredApplications")}</span>
                                 <span>{formatCurrency(item.value)}</span>
                               </div>
                             </div>
@@ -401,10 +482,15 @@ const JobpostTab = () => {
               )}
               {!appLoading && !appError && filtered.map((applicant) => (
                 <tr key={applicant.job_application_id} className="border-b border-border last:border-0 transition-colors hover:bg-accent/50">
-                  <td className="py-3 pr-4 font-medium text-card-foreground">{applicant.applicant_name}</td>
+                  <td className="py-3 pr-4 font-medium text-card-foreground">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span>{applicant.applicant_name}</span>
+                      {getApplicationStatusBadge(applicant, t)}
+                    </div>
+                  </td>
                   <td className="py-3 pr-4 text-muted-foreground">{applicant.job_title}</td>
                   <td className="py-3 pr-4 text-muted-foreground">{applicant.province}</td>
-                  <td className="py-3 text-muted-foreground">{formatAppliedDate(applicant.applied_at)}</td>
+                  <td className="py-3 text-muted-foreground">{formatAppliedDate(applicant.applied_at, language)}</td>
                 </tr>
               ))}
               {!appLoading && !appError && filtered.length === 0 && (
@@ -420,12 +506,15 @@ const JobpostTab = () => {
           {!appLoading && !appError && filtered.map((applicant) => (
             <div key={applicant.job_application_id} className="space-y-3 rounded-lg border border-border p-4">
               <div className="min-w-0">
-                <p className="font-medium text-card-foreground">{applicant.applicant_name}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium text-card-foreground">{applicant.applicant_name}</p>
+                  {getApplicationStatusBadge(applicant, t)}
+                </div>
                 <p className="break-words text-sm text-muted-foreground">{applicant.job_title}</p>
               </div>
               <div className="grid gap-1 text-xs text-muted-foreground">
                 <p>{t("province")}: {applicant.province || "-"}</p>
-                <p>{t("applied")}: {formatAppliedDate(applicant.applied_at)}</p>
+                <p>{t("applied")}: {formatAppliedDate(applicant.applied_at, language)}</p>
               </div>
             </div>
           ))}

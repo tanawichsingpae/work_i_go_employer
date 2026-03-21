@@ -33,6 +33,7 @@ export const en = {
   jobpostInsightsDesc: "Switch between applicants volume and agreed wage without leaving the same panel.",
   applicantsByJobpost: "Applicants by Jobpost",
   agreedWageByJobpost: "Agreed Wage by Jobpost",
+  hiredApplications: "hired applications",
   jobposts: "jobposts",
   applicants: "applicants",
   totalWage: "total wage",
@@ -40,6 +41,9 @@ export const en = {
   showingAllJobposts: "Showing all jobposts",
   selected: "Selected",
   clickBarToFilter: "Click a bar to filter the applicants table below.",
+  tapToShowJobpostWage: "Tap to show wage from the job post",
+  wageAmountFromJobpost: "wage amount from the job post",
+  wageSlicesFromHires: "Wage slices are summed from agreed wages on employments linked to hired job applications.",
   clickSliceToFocus: "Click a slice or list item to focus the applicants table on one jobpost.",
   loadApplicantsChartError: "Unable to load applicants chart",
   loadChartDataError: "Unable to load chart data",
@@ -53,6 +57,8 @@ export const en = {
   applied: "Applied",
   loadApplicantsError: "Unable to load applicants",
   noApplicantsFound: "No applicants found",
+  hiredStatus: "Hired",
+  notHiredStatus: "Not hired",
 
   // EmploymentsTab
   dateRange: "Date Range",
