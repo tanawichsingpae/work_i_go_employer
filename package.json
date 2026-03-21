@@ -5,7 +5,7 @@
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "build": "cd employer-dashboard && npm install && npm run build",
+    "build": "cd employer_dashboard && npm install && npm run build",
     "start": "node server.js"
   },
   "dependencies": {
