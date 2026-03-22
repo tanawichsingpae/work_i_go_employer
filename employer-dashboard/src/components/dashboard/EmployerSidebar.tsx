@@ -1,7 +1,7 @@
 import {
   LayoutDashboard,
   Building2,
-  LogOut,
+  ArrowLeft,
 } from "lucide-react";
 import {
   Sidebar,
@@ -23,6 +23,8 @@ interface EmployerSidebarProps {
   onMenuChange: (menu: string) => void;
 }
 
+const EMPLOYER_HOME_URL = "https://workigo-pan.vercel.app/employer_home.html";
+
 const menuItems = [
   { id: "dashboard", title: "Dashboard", icon: LayoutDashboard },
 ];
@@ -31,6 +33,10 @@ const EmployerSidebar = ({ activeMenu, onMenuChange }: EmployerSidebarProps) => 
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { t } = useLanguage();
+
+  const handleBackToEmployerHome = () => {
+    window.location.href = EMPLOYER_HOME_URL;
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -71,9 +77,12 @@ const EmployerSidebar = ({ activeMenu, onMenuChange }: EmployerSidebarProps) => 
         <SidebarMenu>
 
           <SidebarMenuItem>
-            <SidebarMenuButton className="text-sidebar-foreground hover:bg-sidebar-accent">
-              <LogOut className="h-4 w-4" />
-              {!collapsed && <span>{t("logout")}</span>}
+            <SidebarMenuButton
+              onClick={handleBackToEmployerHome}
+              className="text-sidebar-foreground hover:bg-sidebar-accent"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {!collapsed && <span>{t("backToEmployerHome")}</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

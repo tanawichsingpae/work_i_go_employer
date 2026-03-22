@@ -10,6 +10,7 @@ export const th: Record<TranslationKeys, string> = {
   mainMenu: "เมนูหลัก",
   dashboard: "แดชบอร์ด",
   logout: "ออกจากระบบ",
+  backToEmployerHome: "กลับหน้า Employer Home",
 
   // Index / Header
   employerOverview: "ภาพรวมนายจ้าง",

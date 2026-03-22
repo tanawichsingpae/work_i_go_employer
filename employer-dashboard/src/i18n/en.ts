@@ -8,6 +8,7 @@ export const en = {
   mainMenu: "Main Menu",
   dashboard: "Dashboard",
   logout: "Logout",
+  backToEmployerHome: "Back to Employer Home",
 
   // Index / Header
   employerOverview: "Employer overview",
