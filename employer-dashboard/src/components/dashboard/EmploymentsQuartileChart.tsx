@@ -8,8 +8,8 @@ export type EmploymentsQuartileDatum = {
   jobpostId: string;
   label: string;
   jobType: string;
-  start: string;
-  end: string;
+  start: string | null;
+  end: string | null;
   wage: number;
   employmentCount: number;
   color: string;
@@ -144,6 +144,10 @@ const EmploymentsQuartileChart = ({
   const chartState = useMemo(() => {
     const normalized = data
       .map((item) => {
+        if (!item.start || !item.end) {
+          return null;
+        }
+
         const startDate = parseISO(item.start);
         const endDate = parseISO(item.end);
 

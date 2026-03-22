@@ -12,15 +12,15 @@ type TimelineRow = {
   title: string;
   job_type: string;
   employment_count: number;
-  earliest_start: string;
-  latest_end: string;
+  earliest_start: string | null;
+  latest_end: string | null;
   total_agreed_wage: number;
   employment_status: string;
 };
 
 type Summary = {
-  overall_start: string;
-  overall_end: string;
+  overall_start: string | null;
+  overall_end: string | null;
   grand_total_wage: number;
   total_employments: number;
 };
@@ -54,7 +54,9 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
 
 const formatCurrency = (value: number) => currencyFormatter.format(value);
 
-const formatDateValue = (value: string, language: Language) => {
+const formatDateValue = (value: string | null | undefined, language: Language) => {
+  if (!value) return "-";
+
   const parsed = parseISO(value);
   if (Number.isNaN(parsed.getTime())) return value;
 
@@ -65,6 +67,25 @@ const formatDateValue = (value: string, language: Language) => {
   }).format(parsed);
 };
 
+const getDateSortValue = (value: string | null) => {
+  if (!value) return Number.POSITIVE_INFINITY;
+
+  const parsedTime = parseISO(value).getTime();
+  return Number.isNaN(parsedTime) ? Number.POSITIVE_INFINITY : parsedTime;
+};
+
+const pickEarlierDate = (current: string | null, candidate: string | null) => {
+  if (!current) return candidate;
+  if (!candidate) return current;
+  return candidate < current ? candidate : current;
+};
+
+const pickLaterDate = (current: string | null, candidate: string | null) => {
+  if (!current) return candidate;
+  if (!candidate) return current;
+  return candidate > current ? candidate : current;
+};
+
 const EmploymentsTab = () => {
   const [selectedJobpostId, setSelectedJobpostId] = useState<string | null>(null);
   const { language, t } = useLanguage();
@@ -72,7 +93,6 @@ const EmploymentsTab = () => {
   const { data, isLoading, error } = useQuery<TimelineResponse>({
     queryKey: ["employment-timeline"],
     queryFn: () => fetchJson<TimelineResponse>("/api/employer/employment-timeline"),
-    refetchOnMount: "always",
   });
 
   const aggregated = useMemo(() => {
@@ -84,8 +104,8 @@ const EmploymentsTab = () => {
       job_type: string;
       total_agreed_wage: number;
       employment_count: number;
-      earliest_start: string;
-      latest_end: string;
+      earliest_start: string | null;
+      latest_end: string | null;
     }>();
 
     for (const row of data.timeline) {
@@ -94,8 +114,8 @@ const EmploymentsTab = () => {
       if (existing) {
         existing.total_agreed_wage += row.total_agreed_wage;
         existing.employment_count += row.employment_count;
-        if (row.earliest_start < existing.earliest_start) existing.earliest_start = row.earliest_start;
-        if (row.latest_end > existing.latest_end) existing.latest_end = row.latest_end;
+        existing.earliest_start = pickEarlierDate(existing.earliest_start, row.earliest_start);
+        existing.latest_end = pickLaterDate(existing.latest_end, row.latest_end);
       } else {
         map.set(row.jobpost_id, {
           jobpost_id: row.jobpost_id,
@@ -110,8 +130,8 @@ const EmploymentsTab = () => {
     }
 
     return Array.from(map.values()).sort((left, right) => {
-      const leftDate = parseISO(left.earliest_start).getTime();
-      const rightDate = parseISO(right.earliest_start).getTime();
+      const leftDate = getDateSortValue(left.earliest_start);
+      const rightDate = getDateSortValue(right.earliest_start);
 
       if (!Number.isNaN(leftDate) && !Number.isNaN(rightDate) && leftDate !== rightDate) {
         return leftDate - rightDate;
@@ -231,43 +251,50 @@ const EmploymentsTab = () => {
         </div>
 
         <div className="mt-3 hidden overflow-x-auto md:block">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="py-2 text-left font-medium text-muted-foreground">{t("jobTitle")}</th>
-                <th className="py-2 text-left font-medium text-muted-foreground">{t("type")}</th>
-                <th className="py-2 text-right font-medium text-muted-foreground">{t("employmentsCount")}</th>
-                <th className="py-2 text-left font-medium text-muted-foreground">{t("start")}</th>
-                <th className="py-2 text-left font-medium text-muted-foreground">{t("end")}</th>
-                <th className="py-2 text-right font-medium text-muted-foreground">{t("agreedWage")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {aggregated.map((row) => {
-                const isSelected = row.jobpost_id === selectedJobpostId;
+          {aggregated.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">{t("noEmploymentsData")}</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="py-2 text-left font-medium text-muted-foreground">{t("jobTitle")}</th>
+                  <th className="py-2 text-left font-medium text-muted-foreground">{t("type")}</th>
+                  <th className="py-2 text-right font-medium text-muted-foreground">{t("employmentsCount")}</th>
+                  <th className="py-2 text-left font-medium text-muted-foreground">{t("start")}</th>
+                  <th className="py-2 text-left font-medium text-muted-foreground">{t("end")}</th>
+                  <th className="py-2 text-right font-medium text-muted-foreground">{t("agreedWage")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {aggregated.map((row) => {
+                  const isSelected = row.jobpost_id === selectedJobpostId;
 
-                return (
-                  <tr
-                    key={row.jobpost_id}
-                    onClick={() => setSelectedJobpostId(row.jobpost_id)}
-                    className={`border-b border-border last:border-0 transition-colors ${
-                      isSelected ? "bg-primary/5" : "hover:bg-accent/50"
-                    } cursor-pointer`}
-                  >
-                    <td className="py-3 font-medium text-card-foreground">{row.title}</td>
-                    <td className="py-3 text-muted-foreground">{row.job_type}</td>
-                    <td className="py-3 text-right text-muted-foreground">{row.employment_count}</td>
-                    <td className="py-3 text-muted-foreground">{formatDateValue(row.earliest_start, language)}</td>
-                    <td className="py-3 text-muted-foreground">{formatDateValue(row.latest_end, language)}</td>
-                    <td className="py-3 text-right font-medium text-card-foreground">{formatCurrency(row.total_agreed_wage)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  return (
+                    <tr
+                      key={row.jobpost_id}
+                      onClick={() => setSelectedJobpostId(row.jobpost_id)}
+                      className={`border-b border-border last:border-0 transition-colors ${
+                        isSelected ? "bg-primary/5" : "hover:bg-accent/50"
+                      } cursor-pointer`}
+                    >
+                      <td className="py-3 font-medium text-card-foreground">{row.title}</td>
+                      <td className="py-3 text-muted-foreground">{row.job_type}</td>
+                      <td className="py-3 text-right text-muted-foreground">{row.employment_count}</td>
+                      <td className="py-3 text-muted-foreground">{formatDateValue(row.earliest_start, language)}</td>
+                      <td className="py-3 text-muted-foreground">{formatDateValue(row.latest_end, language)}</td>
+                      <td className="py-3 text-right font-medium text-card-foreground">{formatCurrency(row.total_agreed_wage)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
 
         <div className="mt-3 space-y-3 md:hidden">
+          {!aggregated.length && (
+            <p className="py-8 text-center text-sm text-muted-foreground">{t("noEmploymentsData")}</p>
+          )}
           {aggregated.map((row) => {
             const isSelected = row.jobpost_id === selectedJobpostId;
 
