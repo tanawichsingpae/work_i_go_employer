@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import EmployerSidebar from "@/components/dashboard/EmployerSidebar";
 import SummaryCards from "@/components/dashboard/SummaryCards";
@@ -59,21 +58,12 @@ const Index = () => {
 const DashboardView = () => {
   const { t } = useLanguage();
 
-  // ใช้ state ควบคุม tab
-  const [tab, setTab] = useState("jobpost");
-
   return (
     <div className="mx-auto w-full max-w-7xl space-y-4 sm:space-y-6">
 
-      {/* Summary Cards */}
       <SummaryCards />
 
-      {/* Tabs */}
-      <Tabs
-        value={tab}
-        onValueChange={(value) => setTab(value)}
-        className="w-full"
-      >
+      <Tabs defaultValue="jobpost" className="w-full">
 
         <TabsList className="grid h-auto w-full grid-cols-2 gap-1">
 
@@ -93,6 +83,7 @@ const DashboardView = () => {
 
         </TabsList>
 
+        {/* forceMount ป้องกัน tab ถูก unmount */}
         <TabsContent value="jobpost" forceMount>
           <JobpostTab />
         </TabsContent>
